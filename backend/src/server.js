@@ -18,8 +18,8 @@ app.get('/', (req, res) => {
 });
 
 // error handling middleware
-app.use((err, req, res) => {
-    console.error("Error in post routes", err);
+app.use((err, req, res , next) => {
+    console.error("Error in server", err);
     res.status(500).json({ error: "Something went wrong" });
   });
 app.listen(ENV.PORT,  () => {
