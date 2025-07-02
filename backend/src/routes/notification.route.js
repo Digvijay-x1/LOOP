@@ -1,36 +1,10 @@
-import mongoose from "mongoose";
+import express from "express";
+import { protectRoute } from "../middlewares/auth.middleware.js";
+import { getNotifications, deleteNotification } from "../controllers/notification.controller.js";
 
-const notificationSchema = new mongoose.Schema(
-  {
-    from: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    to: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    type: {
-      type: String,
-      required: true,
-      enum: ["follow", "like", "comment"],
-    },
-    post: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Post",
-      default: null,
-    },
-    comment: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Comment",
-      default: null,
-    },
-  },
-  { timestamps: true }
-);
+const router = express.Router();
 
-const Notification = mongoose.model("Notification", notificationSchema);
+router.get("/", protectRoute, getNotifications);
+router.delete("/:notificationId", protectRoute, deleteNotification);
 
-export default Notification;
+export default router;
