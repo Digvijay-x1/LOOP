@@ -11,7 +11,7 @@ export const aj = arcjet({
 
     // bot detection - more permissive configuration
     detectBot({
-      mode: "MONITOR", // Change from LIVE to MONITOR for now to monitor but not block
+      mode: "DRY_RUN", // Changed from MONITOR to DRY_RUN - only LIVE or DRY_RUN are valid
       allow: [
         "CATEGORY:SEARCH_ENGINE",
         "CATEGORY:BROWSER", // Allow regular browsers
