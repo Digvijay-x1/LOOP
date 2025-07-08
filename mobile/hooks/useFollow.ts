@@ -1,5 +1,5 @@
 import { useApiClient, userApi } from "@/utils/api";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient} from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { useCurrentUser } from "./useCurrentUser";
 

@@ -42,8 +42,10 @@ const SearchScreen = () => {
 
   const navigateToProfile = (username: string) => {
     setShowModal(false);
-    // For now, just navigate to the profile tab as we don't have a dynamic profile route
-    router.push("/(tabs)/profile");
+    router.push({
+      pathname: "/profile/[username]",
+      params: { username }
+    });
   }
 
   const renderSearchResults = () => {
