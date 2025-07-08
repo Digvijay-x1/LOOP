@@ -29,6 +29,9 @@ export const userApi = {
   syncUser: (api: AxiosInstance) => api.post("/users/sync"),
   getCurrentUser: (api: AxiosInstance) => api.get("/users/me"),
   updateProfile: (api: AxiosInstance, data: any) => api.put("/users/profile", data),
+  searchUsers: (api: AxiosInstance, query: string) => api.get(`/users/search/${query}`),
+  getUserProfileByUserName: (api: AxiosInstance, username: string) => api.get(`/users/profile/${username}`),
+  followUser: (api: AxiosInstance, userId: string) => api.post(`/users/follow/${userId}`), // if you are following this will unfollow and vice versa
 };
 
 export const postApi = {
