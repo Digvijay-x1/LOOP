@@ -97,3 +97,63 @@ export const followUser = asyncHandler(async (req, res) => {
       message: isFollowing ? "User unfollowed successfully" : "User followed successfully",
     });
   });
+
+
+export const getFollowers = asyncHandler(async (req, res) => {
+    const {userId} = getAuth(req);
+    const currentUser = await User.findOne({clerkId: userId});
+
+    if(!currentUser) return res.status(404).json({error: "User not found"});
+    
+    
+    const followers = await User.find({following: currentUser._id});
+    res.status(200).json({followers: followers.map(user => ({
+        _id: user._id,
+        firstName: user.firstName,
+        profilePicture: user.profilePicture,
+        isFollowing: currentUser.following.includes(user._id),
+    }))})
+})
+
+
+export const getFollowing = asyncHandler(async (req, res) => {
+    const {userId} = getAuth(req);
+    const currentUser = await User.findOne({clerkId: userId});
+
+    if(!currentUser) return res.status(404).json({error: "User not found"});
+
+    // users whom currentUser is following
+    const following = await User.find({followers: currentUser._id});
+    res.status(200).json({following: following.map(user => ({
+        _id: user._id,
+        firstName: user.firstName,
+        profilePicture: user.profilePicture,
+        isFollowing: currentUser.following.includes(user._id),
+    }))})
+})
+
+
+export const searchUsers = asyncHandler(async (req, res) => {
+    const {query} = req.params;
+
+    const users = await User.find({$or: [{firstName: {$regex: query, $options: "i"}}, {lastName: {$regex: query, $options: "i"}}, {username: {$regex: query, $options: "i"}}]});
+    res.status(200).json({users: users.map(user => ({
+        _id: user._id,
+        firstName: user.firstName,
+        profilePicture: user.profilePicture,
+        username: user.username,
+    }))})
+
+    console.log(users);
+})
+
+
+export const getUserProfileById = asyncHandler(async (req, res) => {
+    const {userId} = req.params;
+    const user = await User.findById(userId);
+
+    if(!user) return res.status(404).json({error: "User not found"});
+
+    res.status(200).json({user})
+})
+
