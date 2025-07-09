@@ -11,27 +11,7 @@ import { arcjetMiddleware } from './middlewares/arcjet.middleware.js';
 import messageRoutes from './routes/message.route.js'
 import { app , server } from './config/socket.js'
 
-// Configure CORS with appropriate options
-const corsOptions = {
-  origin: [
-    "https://loop-blond.vercel.app",
-    "capacitor://localhost",
-    "ionic://localhost",
-    "http://localhost",
-    "http://localhost:3000",
-    "http://localhost:19000", // Expo development server
-    "http://localhost:19006", // Expo web
-    "exp://localhost:19000",   // Expo Go app
-    /^exp:\/\/.*$/,
-    /^http:\/\/192\.168\.\d+\.\d+:\d+$/,
-    /^http:\/\/\d+\.\d+\.\d+\.\d+:\d+$/
-  ],
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-};
-
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(express.json())
 app.use(clerkMiddleware())
 app.use(arcjetMiddleware)

@@ -112,6 +112,7 @@ export const getFollowers = asyncHandler(async (req, res) => {
         firstName: user.firstName,
         profilePicture: user.profilePicture,
         isFollowing: currentUser.following.includes(user._id),
+        username: user.username,
     }))})
 })
 
@@ -129,6 +130,7 @@ export const getFollowing = asyncHandler(async (req, res) => {
         firstName: user.firstName,
         profilePicture: user.profilePicture,
         isFollowing: currentUser.following.includes(user._id),
+        username: user.username,
     }))})
 })
 
