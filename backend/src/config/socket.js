@@ -56,11 +56,14 @@ io.on('connection', (socket) => {
 
             const receiverSocketId = userSocketMap[message.receiverId];
             if (receiverSocketId) {
-                // Ensure message has required fields
+                // Ensure message has required fields and handle undefined values
                 const formattedMessage = {
                     ...message,
-                    _id: message._id?.toString(),
-                    fromUser: message.senderId === userId
+                    _id: message._id ? message._id.toString() : `temp-${Date.now()}`,
+                    content: message.content || message.text || "",
+                    fromUser: message.senderId === userId,
+                    createdAt: message.createdAt || new Date().toISOString(),
+                    updatedAt: message.updatedAt || new Date().toISOString()
                 };
 
                 // Send message to the specific receiver
@@ -89,19 +92,37 @@ io.on('connection', (socket) => {
 // Function to emit a new message to a specific user
 const emitNewMessage = (message) => {
     try {
-        if (!message || !message.receiverId) {
-            console.error('Invalid message format in emitNewMessage:', message);
+        // Validate message object
+        if (!message) {
+            console.error('Message object is undefined in emitNewMessage');
+            return false;
+        }
+        
+        // Validate receiverId
+        if (!message.receiverId) {
+            console.error('receiverId is undefined in message:', message);
             return false;
         }
 
         const receiverSocketId = userSocketMap[message.receiverId];
         if (receiverSocketId) {
-            // Ensure message has required fields
+            // Create a safe copy of the message with fallbacks for all required fields
             const formattedMessage = {
-                ...message,
-                _id: message._id?.toString(),
-                fromUser: true // This is always true for emitNewMessage as it's called after sending
+                // Use spread operator only if message is a valid object
+                ...(typeof message === 'object' && message !== null ? message : {}),
+                
+                // Ensure all required fields have fallback values
+                _id: message._id ? message._id.toString() : `server-${Date.now()}`,
+                content: message.content || message.text || "",
+                fromUser: true, // This is always true for emitNewMessage as it's called after sending
+                createdAt: message.createdAt || new Date().toISOString(),
+                updatedAt: message.updatedAt || new Date().toISOString(),
+                senderId: message.senderId || "unknown",
+                receiverId: message.receiverId
             };
+
+            // Log the formatted message for debugging
+            console.log('Emitting formatted message:', formattedMessage);
 
             io.to(receiverSocketId).emit('newMessage', formattedMessage);
             console.log('Message emitted successfully to:', receiverSocketId);
