@@ -28,7 +28,8 @@ export const getMessages = async (req, res) =>{
         const formattedMessages = messages.map(msg => ({
             ...msg.toObject(),
             _id: msg._id.toString(),
-            fromUser: msg.senderId.toString() === myId.toString()
+            fromUser: msg.senderId.toString() === myId.toString(),
+            content: msg.text || "" // Map text to content for frontend consistency
         }));
 
         res.status(200).json(formattedMessages);
@@ -98,10 +99,11 @@ export const sendMessage = async (req, res) =>{
             }
         }
         
+        // Create message with text field for database but map to content for frontend
         const newMessage = await Message.create({
             senderId,
             receiverId,
-            text: content,
+            text: content, // Store as 'text' in database (matches schema)
             image: imageUrl,
         });
 
@@ -109,18 +111,27 @@ export const sendMessage = async (req, res) =>{
             throw new Error("Failed to create message in database");
         }
 
-        // Format message for frontend
+        // Format message for frontend with consistent field naming
         const messageToSend = {
-            ...newMessage.toObject(),
             _id: newMessage._id.toString(),
+            content: newMessage.text, // Map text to content for frontend
+            image: newMessage.image,
+            senderId: senderId.toString(),
+            receiverId: receiverId.toString(),
             fromUser: true,
-            content: newMessage.text // Map text to content for frontend
+            createdAt: newMessage.createdAt,
+            updatedAt: newMessage.updatedAt
         };
 
         // Emit socket event for real-time messaging
-        const emitted = emitNewMessage(messageToSend);
-        if (!emitted) {
-            console.log("Message saved but recipient is offline");
+        try {
+            const emitted = emitNewMessage(messageToSend);
+            if (!emitted) {
+                console.log("Message saved but recipient is offline");
+            }
+        } catch (socketError) {
+            console.error("Socket emission error:", socketError);
+            // Continue with response even if socket fails
         }
 
         res.status(201).json(messageToSend);
