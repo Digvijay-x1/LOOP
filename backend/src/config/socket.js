@@ -3,7 +3,6 @@ import http from "http";
 import express from 'express';
 
 const app = express();
-
 const server = http.createServer(app);
 
 // Define CORS options
@@ -48,14 +47,30 @@ io.on('connection', (socket) => {
 
     // Handle new message event
     socket.on('sendMessage', (message) => {
-        console.log('Message received:', message);
-        const receiverSocketId = userSocketMap[message.receiverId];
-        if (receiverSocketId) {
-            // Send message to the specific receiver
-            io.to(receiverSocketId).emit('newMessage', message);
-            console.log('Message sent to:', receiverSocketId);
-        } else {
-            console.log('Receiver not online:', message.receiverId);
+        try {
+            console.log('Message received:', message);
+            if (!message || !message.receiverId) {
+                console.error('Invalid message format:', message);
+                return;
+            }
+
+            const receiverSocketId = userSocketMap[message.receiverId];
+            if (receiverSocketId) {
+                // Ensure message has required fields
+                const formattedMessage = {
+                    ...message,
+                    _id: message._id?.toString(),
+                    fromUser: message.senderId === userId
+                };
+
+                // Send message to the specific receiver
+                io.to(receiverSocketId).emit('newMessage', formattedMessage);
+                console.log('Message sent to:', receiverSocketId);
+            } else {
+                console.log('Receiver not online:', message.receiverId);
+            }
+        } catch (error) {
+            console.error('Error handling sendMessage:', error);
         }
     });
 
@@ -73,12 +88,31 @@ io.on('connection', (socket) => {
 
 // Function to emit a new message to a specific user
 const emitNewMessage = (message) => {
-    const receiverSocketId = userSocketMap[message.receiverId];
-    if (receiverSocketId) {
-        io.to(receiverSocketId).emit('newMessage', message);
-        return true;
+    try {
+        if (!message || !message.receiverId) {
+            console.error('Invalid message format in emitNewMessage:', message);
+            return false;
+        }
+
+        const receiverSocketId = userSocketMap[message.receiverId];
+        if (receiverSocketId) {
+            // Ensure message has required fields
+            const formattedMessage = {
+                ...message,
+                _id: message._id?.toString(),
+                fromUser: true // This is always true for emitNewMessage as it's called after sending
+            };
+
+            io.to(receiverSocketId).emit('newMessage', formattedMessage);
+            console.log('Message emitted successfully to:', receiverSocketId);
+            return true;
+        }
+        console.log('Receiver not online:', message.receiverId);
+        return false;
+    } catch (error) {
+        console.error('Error in emitNewMessage:', error);
+        return false;
     }
-    return false;
 }
 
 export {io, app, server, emitNewMessage};

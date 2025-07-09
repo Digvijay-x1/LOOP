@@ -7,69 +7,128 @@ export const getMessages = async (req, res) =>{
     try {
         const {id:userToChatId} = req.params;
         const myId = req.user._id;
+
+        // Validate user IDs
+        if (!userToChatId || !myId) {
+            return res.status(400).json({ 
+                error: "Invalid request", 
+                message: "User IDs are required",
+                code: "VALIDATION_ERROR"
+            });
+        }
+
         const messages = await Message.find({
             $or: [
                 {$and: [{senderId: myId}, {receiverId: userToChatId}]},
                 {$and: [{senderId: userToChatId}, {receiverId: myId}]}
             ]
         }).sort({ createdAt: 1 });
-        res.status(200).json(messages)
+
+        // Format messages for frontend
+        const formattedMessages = messages.map(msg => ({
+            ...msg.toObject(),
+            _id: msg._id.toString(),
+            fromUser: msg.senderId.toString() === myId.toString()
+        }));
+
+        res.status(200).json(formattedMessages);
     } catch (error) {
-        res.status(500).json({ error: "Failed to fetch messages" })
+        console.error("Error fetching messages:", error);
+        res.status(500).json({ 
+            error: "Failed to fetch messages",
+            message: error.message,
+            code: "SERVER_ERROR",
+            status: 500
+        });
     }
 }
 
 export const sendMessage = async (req, res) =>{
     try {
-        const { content, image } = req.body; // Changed from text to content to match frontend
+        const { content, image } = req.body;
         const { id: receiverId } = req.params;
         const senderId = req.user._id;
+
+        // Validate input
+        if (!receiverId || !senderId) {
+            return res.status(400).json({ 
+                error: "Invalid request", 
+                message: "Sender and receiver IDs are required",
+                code: "VALIDATION_ERROR"
+            });
+        }
 
         if (!content && !image) {
             return res.status(400).json({ 
                 error: "Message validation failed", 
-                message: "Message must contain either text or an image" 
+                message: "Message must contain either text or an image",
+                code: "VALIDATION_ERROR"
+            });
+        }
+
+        // Verify receiver exists
+        const receiver = await User.findById(receiverId);
+        if (!receiver) {
+            return res.status(404).json({
+                error: "User not found",
+                message: "The recipient user does not exist",
+                code: "NOT_FOUND"
             });
         }
 
         let imageUrl;
         if(image){
-            // Configure upload options with higher quality and performance settings
-            const uploadOptions = {
-                resource_type: "image",
-                quality: "auto",
-                fetch_format: "auto",
-                // Add timeout settings for larger uploads
-                timeout: 120000, // 2 minutes
-            };
-            
-            const uploadResult = await cloudinary.uploader.upload(image, uploadOptions);
-            imageUrl = uploadResult.secure_url;
+            try {
+                const uploadOptions = {
+                    resource_type: "image",
+                    quality: "auto",
+                    fetch_format: "auto",
+                    timeout: 120000, // 2 minutes
+                };
+                
+                const uploadResult = await cloudinary.uploader.upload(image, uploadOptions);
+                imageUrl = uploadResult.secure_url;
+            } catch (uploadError) {
+                console.error("Image upload error:", uploadError);
+                return res.status(500).json({
+                    error: "Image upload failed",
+                    message: "Failed to upload image. Please try again.",
+                    code: "UPLOAD_ERROR"
+                });
+            }
         }
         
         const newMessage = await Message.create({
             senderId,
             receiverId,
-            text: content, // Map content to text field
+            text: content,
             image: imageUrl,
         });
 
-        // Convert Mongoose document to plain object and format for frontend
+        if (!newMessage) {
+            throw new Error("Failed to create message in database");
+        }
+
+        // Format message for frontend
         const messageToSend = {
             ...newMessage.toObject(),
-            _id: newMessage._id.toString(), // Ensure _id is a string
-            fromUser: true, // Add this field for frontend compatibility
+            _id: newMessage._id.toString(),
+            fromUser: true,
+            content: newMessage.text // Map text to content for frontend
         };
 
         // Emit socket event for real-time messaging
-        emitNewMessage(messageToSend);
+        const emitted = emitNewMessage(messageToSend);
+        if (!emitted) {
+            console.log("Message saved but recipient is offline");
+        }
 
         res.status(201).json(messageToSend);
     } catch (error) {
         console.error("Error sending message:", error);
         res.status(500).json({ 
             error: "Failed to send message", 
-            message: error.message,
+            message: error.message || "An unexpected error occurred",
             code: "SERVER_ERROR",
             status: 500
         });
