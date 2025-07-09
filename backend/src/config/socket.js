@@ -17,29 +17,16 @@ const corsOptions = {
         "http://localhost:19000", // Expo development server
         "http://localhost:19006", // Expo web
         "exp://localhost:19000",   // Expo Go app
-        "exp://192.168.87.199:8081",
-        // Add wildcard for Expo Go on various devices
-        /^exp:\/\/.*$/,
-        // Add wildcard for local development
-        /^http:\/\/192\.168\.\d+\.\d+:\d+$/,
-        // Add wildcard for local network
-        /^http:\/\/\d+\.\d+\.\d+\.\d+:\d+$/
+        "exp://192.168.87.199:8081"
     ],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    credentials: true
 };
 
 console.log("Socket.io CORS config:", corsOptions);
 
 const io = new Server(server, {
     cors: corsOptions,
-    path: '/socket.io',  // Explicitly set the path
-    transports: ['websocket', 'polling'], // Allow both transports
-    pingTimeout: 30000, // Increase ping timeout
-    pingInterval: 10000, // Decrease ping interval for more frequent checks
-    connectTimeout: 30000, // Increase connection timeout
-    allowEIO3: true, // Allow Engine.IO v3 client
+    path: '/socket.io'  // Explicitly set the path
 });
 
 // used to store online users
@@ -72,24 +59,9 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Handle test event
-    socket.on('test', (data) => {
-        console.log('Test event received:', data);
-        // Echo back to sender
-        socket.emit('testResponse', { message: 'Hello from server', received: data });
-    });
-
     socket.on('disconnect', () => {
         console.log('a user disconnected', socket.id);
-        
-        // Find and remove the user from the userSocketMap
-        for (const [key, value] of Object.entries(userSocketMap)) {
-            if (value === socket.id) {
-                delete userSocketMap[key];
-                break;
-            }
-        }
-        
+        delete userSocketMap[userId];
         io.emit('getOnlineUsers', Object.keys(userSocketMap));
         console.log('Updated online users after disconnect:', Object.keys(userSocketMap));
     });
